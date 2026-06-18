@@ -1,0 +1,10 @@
+{
+    "resource_exhaustion_suspects": [],
+    "orphaned_stealth_suspects": [
+        76
+    ],
+    "compromise_percentage": 0.41,
+    "total_audited": 246,
+    "timestamp": "2026-06-17T21:47:13.529087",
+    "classification": "CRITICAL_ALERT"
+}
