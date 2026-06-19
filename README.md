@@ -12,6 +12,7 @@ A high-performance, vectorized SIEM (Security Information and Event Management) 
 * **`(P)satellite_signal_thresholding.py`**: Telemetry signal baseline anomaly processing.
 * **`(P)defective_sensor_cleaner.py`**: Data sanitization utility for incoming hardware telemetry streams.
 * **`anomaly_detector.py`**: Core mathematical threshold verification library.
+* **`P_performance_profiler.py`**: High-resolution performance benchmarking and heap allocation telemetry suite.
 
 ---
 
@@ -29,6 +30,7 @@ The unmitigated analytics engine processed the raw telemetry matrix and triggere
     "timestamp": "2026-06-17T21:47:13.529087",
     "classification": "CRITICAL_ALERT"
 }
+```
 
 To resolve this without degrading throughput, a deterministic whitelist bypass layer was engineered directly into the NumPy masking logic. This allows the core vector engine to isolate known structural anomalies in $O(1)$ space complexity without falling back to slow, conditional iteration loops.
 
