@@ -24,11 +24,13 @@ python -m unittest P_test_vector_engine.py
 python P_performance_profiler.py
 
 A high-performance, vectorized SIEM (Security Information and Event Management) analytics engine designed to intercept low-level operating system telemetry and perform loop-free threat isolation using NumPy matrix masking.
+```
 
 ## 🚀 Active Production Components
 
 ### Core Analytics & Threat Detection
 * **`(P)live_system_audit.py`**: Live Windows kernel ingestion and vector threat scanning pipeline.
+* **`P_crypto_shielderr.py`**: Cryptographic integrity enforcement layer for broken access control verification.
 * **`(P)firewall_audit.py`**: Vectorized network firewall packet filtering.
 * **`(P)memory_integrity_detector.py`**: Real-time memory page allocation and W^X vulnerability scanning.
 * **`(P)tls_handshake_anomaly_detector.py`**: Edge-case TLS data exfiltration ratio tracking.
@@ -108,4 +110,39 @@ test_stealth_threat_detection (__main__.TestNativeSecurityEngine.test_stealth_th
 Ran 3 tests in 0.043s
 
 OK
+
+## 🛡️ Pipeline Guard Integration: Cryptographic Integrity Validation
+
+To protect the system from broken access control overrides and database tampering vulnerabilities, the `ProcAudit-Engine` component serves as an active Pipeline Guard layer. This module calculates streaming SHA-256 signatures over active SIEM runtime telemetry JSON log blocks using fixed 4KB blocks to maintain flat memory bounds.
+
+### 🧪 Live Tamper Simulation Run
+
+To evaluate the validation layer under active exploitation vectors, a runtime simulation was executed where an attacker directly manipulates the telemetry data array (e.g., forcing a `compromise_percentage` modification to bypass standard database validation bounds).
+
+```text
+Initialising cryptographic integrity validation routine...
+------------------------------------------------------------------
+      PROCAUDIT GUARD : TRACKING LIVE PIPELINE INTEGRITY         
+------------------------------------------------------------------
+
+[*] Ingesting active pipeline log: ./siem_logs/incident_report_20260619_193314.json
+[+] Pristine Baseline Hash Generated:
+    -> 6f8ad8c91db93b05caf81b72f89b0f06046d9a83772d7b1462d2735b063d2bed
+
+[*] Running simulation: Attempting unauthorized parameter manipulation...
+[!] Mutated File Cryptographic Signature:
+    -> e988ad8bccdb0f620732a4bd3b30200bda10bc1c3e4e09e3bf6522f1eac18f56
+
+[CRITICAL ALERT] TELEMETRY INTEGRITY BREACH DETECTED!
+    -> Mismatch flagged: Unsanitized writes located in system log array.
+
+------------------------------------------------------------------
+```
+
+### 📌 Core Architecture Observations
+
+* **Deterministic State Baseline**: The guard engine establishes a clean system state baseline hash directly from active SIEM JSON telemetry arrays before testing any exploitation scenarios.
+* **Tamper Detection Capabilities**: When client-side parameter injection overrides database configurations, the engine registers a clear cryptographic signature mutation ($6f8ad8... \neq e988ad...$). This drops any modified pipeline logs completely out of the safe processing array.
+* **Deterministic Resource Cleanup**: Following simulation evaluations, the runtime environment automatically purges simulation artifacts and short-lived execution files properly to prevent persistent memory overhead or tracking drift.
+
 
