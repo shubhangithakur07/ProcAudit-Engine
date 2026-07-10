@@ -1,6 +1,6 @@
 /* * SECURITY ENGINE CORE - TELEMETRY AUDIT
  * Author: Shubhangithakur07
- * Project:ProcAudit-Engine( IITK Portfolio Submission)
+ * Project:ProcAudit-Engine
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -15,16 +15,17 @@ typedef struct {
 /**
  * Parses telemetry buffer to isolate zombie/ghost processes holding RAM with 0 threads.
  * Skips trusted kernel PIDs (4, 76).
+ * fix:account for data overflow by enforcing strict bounds on alert_buffer
  */
-int32_t process_telemetry_stream(const ProcessTelemetry* dataset, int32_t total_rows, uint64_t* alert_buffer, int32_t* total_alerts) {
+int32_t process_telemetry_stream(const ProcessTelemetry* dataset, int32_t total_rows, uint64_t* alert_buffer , int32_t max_alerts,int32_t* total_alerts) {
     
     // Hard fail on invalid memory addresses
     if (!dataset || !alert_buffer || !total_alerts) {
         return -1;
     }
 
-    // Block empty or corrupted stream sizes
-    if (total_rows <= 0) {
+    // Block empty or corrupted stream sizes (fix)AND validate buffer capacity
+    if (total_rows <= 0 ||  max_alerts <= 0) {
         *total_alerts = 0;
         return -2; 
     }
@@ -32,7 +33,7 @@ int32_t process_telemetry_stream(const ProcessTelemetry* dataset, int32_t total_
     int32_t tracked_count = 0;
     int32_t idx = 0;
 
-    // Process stream using direct array indexing instead of pointer walking
+    // Process stream using direct array indexing instead of pointer walking #O(1) memory allocation
     while (idx < total_rows) {
         
         // Target anomalous state: inactive threads but unreleased memory
@@ -42,6 +43,11 @@ int32_t process_telemetry_stream(const ProcessTelemetry* dataset, int32_t total_
             
             // Filter out whitelisted core infrastructure engines
             if (target_pid != 4 && target_pid != 76) {
+
+                //PATCH: strict bound checkig executed
+                if (tracked_count >= max_alerts){
+                    break; //halt alert collection
+                }
                 alert_buffer[tracked_count] = target_pid;
                 tracked_count++;
             }

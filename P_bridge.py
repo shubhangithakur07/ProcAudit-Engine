@@ -1,5 +1,5 @@
 """
-IITK Portfolio Submission - Python Telemetry Core Harness
+ Python Telemetry Core Harness
 Interoperability wrapper using ctypes for low-level process validation.
 Developer: Shubhangithakur07
 """
@@ -44,6 +44,7 @@ def run_audit(mock_data_list):
         ctypes.POINTER(ProcessTelemetry),
         ctypes.c_int32,
         ctypes.POINTER(ctypes.c_uint64),
+        ctypes.c_int32,   #max alerts (new parameter)
         ctypes.POINTER(ctypes.c_int32)
     ]
     core_engine.process_telemetry_stream.restype = ctypes.c_int32
@@ -68,7 +69,8 @@ def run_audit(mock_data_list):
     exit_code = core_engine.process_telemetry_stream(
         telemetry_array, 
         total_elements, 
-        out_alerts, 
+        out_alerts,
+        total_elements,       #(max_alerts)
         ctypes.byref(alert_total)
     )
     
