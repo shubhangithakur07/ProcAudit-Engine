@@ -1,12 +1,13 @@
 """
  Python Telemetry Core Harness
 Interoperability wrapper using ctypes for low-level process validation.
-Developer: Shubhangithakur07
+Developer: Shubhangi Thakur
 """
 
 import os
 import sys
 import ctypes
+
 
 class ProcessTelemetry(ctypes.Structure):
     """Binds directly to our native C structure tracking system load."""
@@ -16,38 +17,37 @@ class ProcessTelemetry(ctypes.Structure):
         ("thread_count", ctypes.c_uint64),
         ("open_handles", ctypes.c_uint64)
     ]
-
+# Resolve OS-specific binaries dynamically
+plat = sys.platform
+if "win32" in plat:
+     bin_file = "P_native_core.dll"
+elif "darwin" in plat:
+     bin_file = "P_native_core.dylib"
+else:
+    bin_file = "P_native_core.so"
+        
+binary_dir = os.path.dirname(os.path.abspath(__file__))
+target_path = os.path.join(binary_dir, bin_file)
+    
+if not os.path.isfile(target_path):
+    raise RuntimeError(f"Missing essential C engine binary: {target_path}")
+        
+# Bind to low-level engine (once)
+core_engine = ctypes.CDLL(target_path)
+    
+# Enforce C function prototypes explicitly
+core_engine.process_telemetry_stream.argtypes = [
+    ctypes.POINTER(ProcessTelemetry),
+    ctypes.c_int32,
+    ctypes.POINTER(ctypes.c_uint64),
+    ctypes.c_int32,   #max alerts (new parameter)
+    ctypes.POINTER(ctypes.c_int32)
+]
+core_engine.process_telemetry_stream.restype = ctypes.c_int32
 def run_audit(mock_data_list):
     if not mock_data_list:
         return []
 
-    # Resolve OS-specific binaries dynamically
-    plat = sys.platform
-    if "win32" in plat:
-        bin_file = "P_native_core.dll"
-    elif "darwin" in plat:
-        bin_file = "P_native_core.dylib"
-    else:
-        bin_file = "P_native_core.so"
-        
-    binary_dir = os.path.dirname(os.path.abspath(__file__))
-    target_path = os.path.join(binary_dir, bin_file)
-    
-    if not os.path.isfile(target_path):
-        raise RuntimeError(f"Missing essential C engine binary: {target_path}")
-        
-    # Bind to low-level engine
-    core_engine = ctypes.CDLL(target_path)
-    
-    # Enforce C function prototypes explicitly
-    core_engine.process_telemetry_stream.argtypes = [
-        ctypes.POINTER(ProcessTelemetry),
-        ctypes.c_int32,
-        ctypes.POINTER(ctypes.c_uint64),
-        ctypes.c_int32,   #max alerts (new parameter)
-        ctypes.POINTER(ctypes.c_int32)
-    ]
-    core_engine.process_telemetry_stream.restype = ctypes.c_int32
     
     total_elements = len(mock_data_list)
     
