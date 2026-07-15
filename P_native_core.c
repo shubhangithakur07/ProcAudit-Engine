@@ -7,7 +7,7 @@
 
 typedef struct {
     uint64_t pid;
-    double ram_bytes;
+    uint64_t ram_bytes;
     uint64_t thread_count;
     uint64_t open_handles;
 } ProcessTelemetry;
