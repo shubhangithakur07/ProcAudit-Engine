@@ -12,6 +12,7 @@ INPUT FORMAT & CONSTRAINTS:
     strictly zero iteration loops allowed. Sorting implemented via O(N log N) C-native execution.'''
 
 import numpy as np
+import time
 
 def tls_audit_advanced(net_strm: np.ndarray) -> dict:
     con_ids = net_strm[:, 0]   
@@ -20,29 +21,31 @@ def tls_audit_advanced(net_strm: np.ndarray) -> dict:
     bytr = net_strm[:, 3]      
     certval = net_strm[:, 4]   
 
-    exfratio = byts / (bytr + 0.000001)
+    exfratio = np.divide(byts,bytr,out=np.zeros_like(byts,dtype=np.float64),where=bytr!=0)#prevent fpu casting and avoid duvidon by zero error simultaneously
 
     #DYNAMIN RISK VECTORIZATION BEGINS
-    cipenalty=np.where(ci_counts<8.0,40.0,0.0)
-    certpenalty=np.where(certval<7.0,20.0,0.0)
+    cipenalty=np.where(ci_counts<8,40,0)
+    certpenalty=np.where(certval<7,20,0)
 
     raw_exfilpenalty=exfratio*5
-    exfilpenalty=np.where(raw_exfilpenalty>40.0,40.0,raw_exfilpenalty)
-    exfilpenalty=np.where(byts>1000.0,exfilpenalty,0.0)  #filtering out tiny background data
+    exfilpenalty=np.where(raw_exfilpenalty>40,40,raw_exfilpenalty)
+    exfilpenalty=np.where(byts>1000,exfilpenalty,0)  #filtering out tiny background noise
 
     #defining masks
     totalpenalty=cipenalty+certpenalty+exfilpenalty
-    critical=totalpenalty>50.0
+
+    critical=totalpenalty>50
     criticalids=con_ids[critical]
     criticalscores=totalpenalty[critical]
+    
     #sorting begins
-    sortedin=np.argsort(-criticalscores)
+    sortedin=np.argsort(-criticalscores) #decreasing order
     sortedids=criticalids[sortedin]
     sortedscores=criticalscores[sortedin]
 
     #summary of audit
     total_cons = net_strm.shape[0]
-    mal= totalpenalty > 0.0   #Anything that can pose as a threat is malicious so safe ids would only be ones with total penalty=0
+    mal= totalpenalty > 0  #Anything that can pose as a threat is malicious so safe ids would only be ones with total penalty=0
     overallthreat=(np.sum(mal) / total_cons)*100
 
     prioritisedincidents=np.column_stack((sortedids,sortedscores))
@@ -53,7 +56,7 @@ def tls_audit_advanced(net_strm: np.ndarray) -> dict:
 
 
 
-#TIME TO CHECK
+#TIME TO TEST
 if __name__ == "__main__":
     np.random.seed(42)
     total_records = 10000
@@ -64,21 +67,28 @@ if __name__ == "__main__":
     b_recv   = np.random.randint(2000, 20000, size=total_records)
     v_days   = np.random.randint(90, 365, size=total_records)
     
-    # Inject Malicious Anomalies
+    # inject malicious anomalies
     ciphers[150] = 5;   b_sent[150] = 85000;  b_recv[150] = 1200
     ciphers[920] = 4;   b_sent[920] = 120000; b_recv[920] = 800
-    v_days[412] = 3
+    v_days[412] = 3;     b_sent[412] = 120000; b_recv[412] = 800
     v_days[7055] = 1
     
-    simulated_traffic = np.column_stack((conn_ids, ciphers, b_sent, b_recv, v_days))
+    simulated_traffic = np.column_stack((conn_ids, ciphers, b_sent, b_recv, v_days)).astype(np.uint64)
+    start= time.perf_counter()
     forensic_report = tls_audit_advanced(simulated_traffic)
+    end=time.perf_counter()
+    latency=(end-start)*1000
+
 
     print("---------------------------------------------------------")
-    print("IIT ADVANCED METRIC SCORING AND TRIAGE SECURITY ENGINE")
+    print(" ADVANCED METRIC SCORING AND TRIAGE SECURITY ENGINE")
     print("---------------------------------------------------------")
     print(f"Total network connections scanned:{total_records}")
-    print(f"Sorted critical incidents: {forensic_report['prioritised_incidents']}")
-    print(f"Overall threat percentage: {forensic_report["threat_percentage"]}")
+    print(f"Overall threat percentage: {forensic_report['threat_percentage']}")
+    print(f"Vector engine latency: {latency:.4f} ms")
+    print("\n \n Prioristised Crtical Incidents")
+    for incident in forensic_report['prioritised_incidents']:
+        print(f"   -> Connection ID: {int(incident[0])} | Risk Score: {incident[1]}")
 
 
 
