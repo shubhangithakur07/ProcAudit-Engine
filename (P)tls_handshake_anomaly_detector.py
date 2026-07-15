@@ -26,6 +26,7 @@ CONSTRAINTS & PERFORMANCE GOALS:
     - Isolate malicious IP/Connection profiles with zero reliance on external state.'''
 
 import numpy as np
+import time
  # we'll be creating an immortal engine using def block to make it reusable
 def tls_audit(net_strm: np.ndarray)  -> dict:
     con_ids=net_strm[:,0] #connection ids
@@ -33,12 +34,14 @@ def tls_audit(net_strm: np.ndarray)  -> dict:
     byts=net_strm[:,2] #bytes sent
     bytr=net_strm[:,3] #bytes received
     certval=net_strm[:,4] # certificate validity
-
-    exfratio= byts/(bytr+0.000001) #if some id is downloading way more than they are uploading
-    exfidentify=(ci_counts <8.0) & (exfratio > 7.0) & (byts>1000)
+    #Using np.divide with 'where' safety to avoid the 0.000001 decimal hack
+    # This keeps our math clean and avoids unnecessary floating point errors
+    exfratio= np.divide(byts, bytr, out=np.zeros_like(byts, dtype=np.float64), where=bytr!=0) #if some id is downloading way more than they are uploading
+    exfidentify=(ci_counts <8) & (exfratio > 7.0) & (byts>1000)
     flagged_exfids=con_ids[exfidentify]
     #sucessfully confirmed exfiltration
-    ephidentify=certval<7.0
+    
+    ephidentify=certval<7
     flagged_ephids=con_ids[ephidentify] #check for ephermeral ids
 
     total_cons=net_strm.shape[0]
@@ -69,17 +72,20 @@ if __name__ == "__main__":
     v_days[412] = 3
     v_days[7055] = 1
 
-    simulatedtrfc = np.column_stack((conn_ids, ciphers, b_sent, b_recv, v_days))
-
+    simulatedtrfc = np.column_stack((conn_ids, ciphers, b_sent, b_recv, v_days)).astype(np.uint64)
+    start= time.perf_counter()
     forensic_report=tls_audit(simulatedtrfc)
+    end=time.perf_counter()
+    latency_ms=(end - start)*1000
     #FINAL OUTPUT
     print("-----------------------------------------------------")
-    print("        IITK TLS TRAFFIC ENGINE SECURITY AUDIT     ")
+    print("        TLS TRAFFIC ENGINE SECURITY AUDIT     ")
     print("-----------------------------------------------------")
     print(f"Tota networks scanned : {total_records}")
-    print(f"Data exfiltration suspects flagged: {forensic_report["exfiltration_alerts"]}")
-    print(f"Ephermeral certificate tunnels flagged: {forensic_report["ephemeral_cert_alerts"]}")
-    print(f"Overall network threat density: {forensic_report["threat_percentage"]}%")
+    print(f"Data exfiltration suspects flagged: {forensic_report['exfiltration_alerts']}")
+    print(f"Ephermeral certificate tunnels flagged: {forensic_report['ephemeral_cert_alerts']}")
+    print(f"Overall network threat density: {forensic_report['threat_percentage']}%")
+    print(f"Vector Engine latency: {latency_ms:.4f} ms")
 
 
 
