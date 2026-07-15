@@ -1,5 +1,5 @@
 """
- Python Telemetry Core Harness
+Python Telemetry Core Harness
 Interoperability wrapper using ctypes for low-level process validation.
 Developer: Shubhangi Thakur
 """
@@ -7,13 +7,14 @@ Developer: Shubhangi Thakur
 import os
 import sys
 import ctypes
+import time
 
 
 class ProcessTelemetry(ctypes.Structure):
     """Binds directly to our native C structure tracking system load."""
     _fields_ = [
         ("pid", ctypes.c_uint64),
-        ("ram_bytes", ctypes.c_double),
+        ("ram_bytes", ctypes.c_uint64),
         ("thread_count", ctypes.c_uint64),
         ("open_handles", ctypes.c_uint64)
     ]
@@ -44,6 +45,8 @@ core_engine.process_telemetry_stream.argtypes = [
     ctypes.POINTER(ctypes.c_int32)
 ]
 core_engine.process_telemetry_stream.restype = ctypes.c_int32
+
+
 def run_audit(mock_data_list):
     if not mock_data_list:
         return []
@@ -56,7 +59,7 @@ def run_audit(mock_data_list):
     for i, data in enumerate(mock_data_list):
         telemetry_array[i] = ProcessTelemetry(
             pid=int(data[0]), 
-            ram_bytes=float(data[1]), 
+            ram_bytes=int(data[1]), 
             thread_count=int(data[2]), 
             open_handles=int(data[3])
         )
@@ -83,12 +86,22 @@ def run_audit(mock_data_list):
 if __name__ == "__main__":
     # Rapid end-to-end integration test
     test_telemetry = [
-        [76, 45000000.0, 0, 120],  # Kernel PID (Should be ignored)
-        [999, 85000000.0, 0, 15]   # Rogue process (Should be caught)
+        [76, 45000000, 0, 120],  # Kernel PID (Should be ignored)
+        [999, 85000000, 0, 15],   # Rogue process (Should be caught)
+        [4, 10000000, 0, 900],   # Kernel PID (Should be ignored)
+        [1005, 50000, 0, 2]      # Rogue process (Should be caught)
     ]
     
     try:
+        start=time.perf_counter()
         results = run_audit(test_telemetry)
-        print(f"[SUCCESS] Interop Pipeline Active. Caught PIDs: {results}")
+        end=time.perf_counter()
+        latency=(end-start)*1000
+
+
+        print(" ⚡ NATIVE C-ENGINE TELEMETRY AUDIT ⚡ ")
+        print(f"[SUCCESS] Interop Pipeline Active.")
+        print(f"Caught Malicious PIDs : {results}")
+        print(f"Bridge + C Latency    : {latency:.4f} ms")
     except Exception as e:
         print(f"[FAILURE] Test sequence aborted: {e}")
