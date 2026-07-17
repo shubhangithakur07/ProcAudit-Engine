@@ -1,9 +1,8 @@
 """
-IITK Portfolio Submission - BCyber Core Component
-Author: Shubhangithakur07
-Project: ProcAudit-Engine (Pipeline Guard Component)
-Description: Lightweight integrity enforcement layer designed to detect 
-             broken access control overrides and database tampering.
+Enterprise Pipeline Guard Component
+Lightweight integrity enforcement layer designed to detect 
+broken access control overrides and database tampering.
+Developer: shubhangithakur07
 """
 
 import hashlib
@@ -11,8 +10,9 @@ import os
 import json
 
 def get_file_hash(path: str) -> str:
-    """Calculates SHA-256 hash of a telemetry log file using 4KB block increments 
-    to protect system memory from resource exhaustion attacks.
+    """Calculates SHA-256 hash of a telemetry log file using 64KB block increments 
+    to protect system memory from resource exhaustion attacks while complying with 
+    CPU cache limits
     """
     if not os.path.exists(path):
         return ""
@@ -21,7 +21,7 @@ def get_file_hash(path: str) -> str:
     try:
         with open(path, "rb") as f:
             #chunk-based data reading to stream telemetry blocks safely later
-            while chunk := f.read(4096):
+            while chunk := f.read(65536):#changed from 4kb to 64kb, perfectly alings with L1/L2 cache
                 sha.update(chunk)
     except (PermissionError, FileNotFoundError) as e:
         print(f"[-] Access Error during hashing routine: {e}")
@@ -34,26 +34,26 @@ def get_file_hash(path: str) -> str:
 
 def verify_system_integrity():
     print(" Initialising cryptographic integrity validation routine...")
-    print("     __IITK PORTFOLIO:CRYPTOGRAPHIC INTEGRITY MONITOR__        ")
+    print("     __CRYPTOGRAPHIC INTEGRITY MONITOR__        ")
     
     
     log_dir = "./siem_logs"
     if not os.path.exists(log_dir):
         print(" Target directory missing. Please boot the core engine telemetry layer first.")
         return
+    
+    print(f" Scanning directory for active telemetry streams: {log_dir}")
+    log_stream=(os.path.join(log_dir, f) for f in os.listdir(log_dir) if f.endswith('.json'))
 
     # Ingesting the latest runtime JSON telemetry block from active logs
     try:
-        log_files = [os.path.join(log_dir, f) for f in os.listdir(log_dir) if f.endswith('.json')]
+        active_log = max(log_stream, key=os.path.getctime)
+    except ValueError:#in case dataset is empty
+        print("Error: No telemetry datasets detected for verification")
+        return
     except Exception as e:
         print(f" Critical: Failed to scan directory {log_dir}. Reason: {e}")
         return
-    
-    if not log_files:
-        print("Error: No telemetry datasets detected for verification signing.")
-        return
-        
-    active_log = max(log_files, key=os.path.getctime)
     print(f" Ingesting active pipeline log: {active_log}")
     
    # Incident is over. Need to generate the pristine baseline hash now.
