@@ -44,30 +44,6 @@ python P_analytics_visualizer.py
 
 ```
 
-
-## 🚀 Active Production Components
-
-### Core Analytics & Threat Detection
-* **`(P)live_system_audit.py`**: Live Windows kernel ingestion and vector threat scanning pipeline.
-* **`P_crypto_shielderr.py`**: Cryptographic integrity enforcement layer for broken access control verification.
-* **`(P)firewall_audit.py`**: Vectorized network firewall packet filtering.
-* **`(P)memory_integrity_detector.py`**: Real-time memory page allocation and W^X vulnerability scanning.
-* **`(P)tls_handshake_anomaly_detector.py`**: Edge-case TLS data exfiltration ratio tracking.
-* **`(P)tls_handshake_anomaly_detector_advanced.py`**: Advanced Multi-session cryptographic handshake validation.
-
-### Distributed Telemetry & Data Sanitization(Can be accessed from the research archive)
-* **`(P)multistation_variance_audit.py`**: Distributed system vector variance profiling.
-* **`(P)satellite_signal_thresholding.py`**: Telemetry signal baseline anomaly processing.
-* **`(P)defective_sensor_cleaner.py`**: Data sanitization utility for incoming hardware telemetry streams.
-
-### Engine Infrastructure & Performance
-* **`anomaly_detector.py`**: Core mathematical threshold verification library.
-* **`P_performance_profiler.py`**: High-resolution performance benchmarking and heap allocation telemetry suite.
-* **`P_bridge.py`**: Python-to-C FFI (Foreign Function Interface) management bridge.
-* **`P_native_core.c`**: Compiled C-acceleration layer for hardware-level event processing.
-* **`P_test_engine.py`**: Automated test suite for validation of security safeguards.
-* **`(P)test_vector_engine.py`**: Specialized unit testing for vector math integrity.
-
 ## 🏗️ The 5 Pillars of the Architecture
 
 ### 1. Data Acquisition (The OS Sensor)
@@ -82,7 +58,7 @@ python P_analytics_visualizer.py
 
 • **File:** `(P)memory_integrity_detector.py`
 
-• **Mechanism:** Achieves processing latency of ~1.22 ms over a 100,000-row telemetry matrix. By utilizing native heap allocation tracing (`tracemalloc`), the engine proved that its peak memory footprint remains flat and bounded at just **489 KB**. Calculations are executed as shared memory views (boolean masks) rather than costly data duplications, preventing runtime Out-Of-Memory (OOM) failures under heavy throughput.
+• **Mechanism:** Achieves processing latency of ~0.21 ms over a 100,000-row telemetry matrix. By utilizing native heap allocation tracing (`tracemalloc`), the engine proved that its peak memory footprint remains flat and bounded at just **489 KB**. Calculations are executed as shared memory views (boolean masks) rather than costly data duplications, preventing runtime Out-Of-Memory (OOM) failures under heavy throughput.
 
 ### 3. Network Analytics (Advanced TLS Triage)
 
@@ -94,13 +70,13 @@ python P_analytics_visualizer.py
 
 • **Files:** `P_bridge.py`, `P_native_core.c`
 
-• **Mechanism:** To mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. The architecture employs `ctypes` to pack data into strict 32-byte structs (perfectly aligned for 64-byte CPU cache fetches), achieving bare-metal execution latencies of < **0.09 ms**.
+• **Mechanism:** To mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. The architecture employs `ctypes` to pack data into strict 32-byte structs (perfectly aligned for 64-byte CPU cache fetches), achieving bare-metal execution latencies of < **0.20 ms**.
 
 ### 5. Data Integrity (The Crypto Guard)
 
 • **File:** `P_crypto_shielderr.py`
 
-• **Mechanism:** Defends the SIEM JSON output logs against Broken Access Control and post-incident tampering. Ingests log files using $O(1)$ memory generator expressions () and calculates SHA-256 cryptographic signatures using **64KB chunk increments** to perfectly saturate modern CPU cache lines without exhausting system RAM.
+• **Mechanism:** Defends the SIEM JSON output logs against Broken Access Control and post-incident tampering. Ingests log files using $O(1)$ memory generator expressions `()` and calculates SHA-256 cryptographic signatures using **64KB chunk increments** to perfectly saturate modern CPU cache lines without exhausting system RAM.
   
 
 ---
@@ -110,35 +86,19 @@ To validate the scalability and computational bounds of the whitelist architectu
 
 ### Evaluation Metrics & Empirical Results
 
-| Metric | Evaluation Value |
-| :--- | :--- |
-| **Total Telemetry Rows Audited** | 100,000 |
-| **C-Engine Native Latency** |<0.09ms |
-| **Mathematical Execution Latency** | 1.2225 ms |
-| **Peak Heap Allocation** | 489.23 KB |
-| **System Threat Score** | 0.0% (Post-whitelist)|
+| Metric | Evaluation Value | Hardware Impact|
+| :--- | :--- | :--- |
+| **Total Telemetry Rows Audited** | 100,000 | High-density load simulation |
+| **C-Engine Native Latency** |<0.20ms |Sub-milisecond evaluation |
+| **Mathematical Execution Latency** |  0.2147 ms| Loop-free python orchestation|
+| **Peak Heap Allocation** | 489.23 KB |Empirical  $O(1)$ space complexity|
+| **System Threat Score** | 0.0%)| Flawless false-positive whitelist routing
 
 
 
-## 🔬 Case Study 1: Low-Level OS False Positive Mitigation
+## 🔬Deep-Dive Into Hurdles
 
-During live kernel testing via `(P)live_system_audit.py`, the analytics engine's vector masks initially isolated the native Windows Registry process (**PID 76**) as an active threat due to its unique architectural footprint (maintaining an active physical RAM allocation but utilizing 0 native threads). 
-
-### Phase 1: Raw Anomaly Ingestion (Before Patch)
-The unmitigated analytics engine processed the raw telemetry matrix and triggered a system-wide warning:
-```json
-{    
-    "resource_exhaustion_suspects": [],
-    "orphaned_stealth_suspects": [76],
-    "compromise_percentage": 0.41,
-    "timestamp": "2026-06-17T21:47:13.529087",
-    "classification": "CRITICAL_ALERT"
-}
-```
-
-To resolve this without degrading throughput, a deterministic whitelist bypass layer was engineered directly into the NumPy masking logic. This allows the core vector engine to isolate known structural anomalies in $O(1)$ space complexity without falling back to slow, conditional iteration loops.
-
-## 🔬 Case Study 2: Bypassing FPU Latency via Fixed-Point Arithmetic
+### 🔬 Case Study 1: Bypassing FPU Latency via Fixed-Point Arithmetic
 
 During the development of the `(P)memory_integrity_detector.py` engine, floating-point math (decimals) created a severe bottleneck in the CPU's Floating Point Unit (FPU), causing unnecessary memory coercion (Upcasting to float64).
 
@@ -152,5 +112,37 @@ By feeding contiguous uint64 memory blocks directly into the CPU's Arithmetic Lo
 
 **Warm Cache Latency (L1/L2 CPU Cache hit):** `0.13 ms`
 
+###Case Study 2: Pipeline Cryptographic Tamper Defense
+To protect the system from broken access control overrides and database tampering vulnerabilities, the `P_crypto_shielderr.py` component serves as an active Pipeline Guard layer. It calculates streaming SHA-256 signatures over active SIEM runtime telemetry JSON log blocks.
+
+**Live Simulation Results:** When client-side parameter injection overrides database configurations, the engine registers a clear cryptographic signature mutation **($6f8ad8... \neq e988ad...$)**. The runtime environment automatically purges simulation artifacts and short-lived execution files properly to prevent persistent memory overhead or tracking drift.
+
+```
+[*] Ingesting active pipeline log: ./siem_logs/incident_report_20260619_193314.json
+[+] Pristine Baseline Hash Generated:
+    -> 6f8ad8c91db93b05caf81b72f89b0f06046d9a83772d7b1462d2735b063d2bed
+
+[*] Running simulation: Attempting unauthorized parameter manipulation...
+[!] Mutated File Cryptographic Signature:
+    -> e988ad8bccdb0f620732a4bd3b30200bda10bc1c3e4e09e3bf6522f1eac18f56
+
+[CRITICAL ALERT] TELEMETRY INTEGRITY BREACH DETECTED!
+    -> Mismatch flagged: Unsanitized writes located in system log array.
+```
+##🧪 CI/CD Testing & Latency Constraints
+To ensure the integrity of the detection logic, the engine relies on a strict `unittest` suite. Beyond standard assertions, the pipeline enforces a **Hard Hardware Latency Constraint**, intentionally failing builds if the C-Engine and Python orchestrator fail to process 10,000 records within a 25.0ms threshold.
+```
+[RUNNING] Executing Native C-Engine Test Suite validations...
+test_c_engine_latency_constraint (__main__.TestNativeSecurityEngine.test_c_engine_latency_constraint) ... ok
+test_empty_payload_safeguard (__main__.TestNativeSecurityEngine.test_empty_payload_safeguard) ... ok
+test_kernel_whitelist_bypass (__main__.TestNativeSecurityEngine.test_kernel_whitelist_bypass) ... ok
+test_stealth_threat_detection (__main__.TestNativeSecurityEngine.test_stealth_threat_detection) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.021s
+
+OK
+
+```
 ---
 
