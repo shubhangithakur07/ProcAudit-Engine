@@ -52,7 +52,7 @@ class TestVectorSecurityEngine(unittest.TestCase):
         self.assertIn(101, result["resource_exhaustion_suspects"])  
         self.assertEqual(result["compromise_percentage"], 100.0)
    def test_engine_latency_constraints(self):
-        """PROVE: The vectorized engine processes 100,000 synthetic records in under 5 milliseconds."""
+        """PROVE: The vectorized engine processes 100,000 synthetic records in under 15 milliseconds."""
         # Generate 100,000 rows of fake benign data using NumPy arrays
         mock_krnl = np.zeros((100000, 4), dtype=np.uint64)
         mock_krnl[:, 0] = np.arange(1000, 101000) 
@@ -66,8 +66,8 @@ class TestVectorSecurityEngine(unittest.TestCase):
         end_time = time.perf_counter()
         latency_ms = (end_time - start_time) * 1000
         
-        #Lie Detector: If it takes longer than 30.0 milliseconds, FAIL THE TEST.
-        self.assertLess(latency_ms, 30.0, f"Engine performance degraded! Took {latency_ms:.2f} ms")
+        #Lie Detector: If it takes longer than 15.0 milliseconds, FAIL THE TEST.
+        self.assertLess(latency_ms, 15.0, f"Engine performance degraded! Took {latency_ms:.2f} ms")
 
 if __name__=="__main__":
-  unittest.main()   
+  unittest.main()  
