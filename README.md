@@ -58,7 +58,7 @@ python P_analytics_visualizer.py
 
 • **File:** `(P)memory_integrity_detector.py`
 
-• **Mechanism:** Achieves processing latency of ~0.21 ms over a 100,000-row telemetry matrix. By utilizing native heap allocation tracing (`tracemalloc`), the engine proved that its peak memory footprint remains flat and bounded at just **489 KB**. Calculations are executed as shared memory views (boolean masks) rather than costly data duplications, preventing runtime Out-Of-Memory (OOM) failures under heavy throughput.
+• **Mechanism:** Achieves processing latency of ~0.25(on an average) ms over a 100,000-row telemetry matrix. By utilizing native heap allocation tracing (`tracemalloc`), the engine proved that its peak memory footprint remains flat and bounded at just **489 KB**. Calculations are executed as shared memory views (boolean masks) rather than costly data duplications, preventing runtime Out-Of-Memory (OOM) failures under heavy throughput.
 
 ### 3. Network Analytics (Advanced TLS Triage)
 
@@ -70,7 +70,7 @@ python P_analytics_visualizer.py
 
 • **Files:** `P_bridge.py`, `P_native_core.c`
 
-• **Mechanism:** To mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. The architecture employs `ctypes` to pack data into strict 32-byte structs (perfectly aligned for 64-byte CPU cache fetches), achieving bare-metal execution latencies of < **0.20 ms**.
+• **Mechanism:** To mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. The architecture employs `ctypes` to pack data into strict 32-byte structs (perfectly aligned for 64-byte CPU cache fetches), achieving bare-metal execution latencies which are consistently sub-milisecond **(<1.0 ms)**.
 
 ### 5. Data Integrity (The Crypto Guard)
 
@@ -90,7 +90,7 @@ To validate the scalability and computational bounds of the whitelist architectu
 | :--- | :--- | :--- |
 | **Total Telemetry Rows Audited** | 100,000 | High-density load simulation |
 | **C-Engine Native Latency** |<0.20ms |Sub-milisecond evaluation |
-| **Mathematical Execution Latency** |  0.2147 ms| Loop-free python orchestation|
+| **Mathematical Execution Latency** |  ~0.25 ms(avg)| Loop-free python orchestation|
 | **Peak Heap Allocation** | 489.23 KB |Empirical  $O(1)$ space complexity|
 | **System Threat Score** | 0.0%)| Flawless false-positive whitelist routing
 
