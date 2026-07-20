@@ -62,7 +62,7 @@ python P_analytics_visualizer.py
 
 ### 3. Network Analytics (Advanced TLS Triage)
 
-• **File:** `tls_handshake_anomaly_detecter_advanced.py`
+• **File:** `tls_handshake_anomaly_detector_advanced.py`
 
 • **Mechanism:** Mathematical scoring of TLS Handshake metadata (JA3 mismatch indicators, exfiltration ratios) to detect Command & Control (C2) beaconing. Implements safe branchless division (`np.divide` with `out=zeros_like`) to prevent Divide-by-Zero CPU interrupts, and utilizes $O(N \log N)$ native `argsort` for dynamic threat prioritization.
 
@@ -92,7 +92,7 @@ To validate the scalability and computational bounds of the whitelist architectu
 | **C-Engine Native Latency** |<0.20ms |Sub-milisecond evaluation |
 | **Mathematical Execution Latency** |  ~0.25 ms(avg)| Loop-free python orchestation|
 | **Peak Heap Allocation** | 489.23 KB |Empirical  $O(1)$ space complexity|
-| **System Threat Score** | 0.0%)| Flawless false-positive whitelist routing
+| **System Threat Score** | 0.0%| Flawless false-positive whitelist routing
 
 
 
@@ -112,7 +112,7 @@ By feeding contiguous uint64 memory blocks directly into the CPU's Arithmetic Lo
 
 **Warm Cache Latency (L1/L2 CPU Cache hit):** `0.13 ms`
 
-###Case Study 2: Pipeline Cryptographic Tamper Defense
+### Case Study 2: Pipeline Cryptographic Tamper Defense
 To protect the system from broken access control overrides and database tampering vulnerabilities, the `P_crypto_shielderr.py` component serves as an active Pipeline Guard layer. It calculates streaming SHA-256 signatures over active SIEM runtime telemetry JSON log blocks.
 
 **Live Simulation Results:** When client-side parameter injection overrides database configurations, the engine registers a clear cryptographic signature mutation **($6f8ad8... \neq e988ad...$)**. The runtime environment automatically purges simulation artifacts and short-lived execution files properly to prevent persistent memory overhead or tracking drift.
@@ -129,7 +129,7 @@ To protect the system from broken access control overrides and database tamperin
 [CRITICAL ALERT] TELEMETRY INTEGRITY BREACH DETECTED!
     -> Mismatch flagged: Unsanitized writes located in system log array.
 ```
-##🧪 CI/CD Testing & Latency Constraints
+## 🧪 CI/CD Testing & Latency Constraints
 To ensure the integrity of the detection logic, the engine relies on a strict `unittest` suite. Beyond standard assertions, the pipeline enforces a **Hard Hardware Latency Constraint**, intentionally failing builds if the C-Engine and Python orchestrator fail to process 10,000 records within a 25.0ms threshold.
 ```
 [RUNNING] Executing Native C-Engine Test Suite validations...
