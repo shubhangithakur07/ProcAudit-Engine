@@ -146,3 +146,7 @@ OK
 ```
 ---
 
+
+## Execution Benchmark
+
+![Bare Metal Linux Execution Benchmark](baremetal_execution_benchmark.png)
