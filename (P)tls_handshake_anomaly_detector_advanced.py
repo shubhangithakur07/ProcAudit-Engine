@@ -15,42 +15,51 @@ import numpy as np
 import time
 
 def tls_audit_advanced(net_strm: np.ndarray) -> dict:
+
+    total_cons= net_strm.shape[0]
+    if total_cons==0:
+        return{
+            "prioritised_incidents": np.empty(0, dtype=[('con-id', np.uint64), ('risk_score', np.uint64)]),
+            "threat_percentage": 0.0
+        }
+
     con_ids = net_strm[:, 0]   
     ci_counts = net_strm[:, 1] 
     byts = net_strm[:, 2]      
     bytr = net_strm[:, 3]      
-    certval = net_strm[:, 4]   
+    certval = net_strm[:, 4]
 
-    exfratio = np.divide(byts,bytr,out=np.zeros_like(byts,dtype=np.float64),where=bytr!=0)#prevent fpu casting and avoid duvidon by zero error simultaneously
+    #single workspace array allocation
+    totalpenalty=np.zeros(total_cons, dtype=np.uint64)
+    np.add(totalpenalty, 40, out=totalpenalty, where=(ci_counts < 8))
+    np.add(totalpenalty, 20, out=totalpenalty, where=(certval < 7))
 
-    #DYNAMIN RISK VECTORIZATION BEGINS
-    cipenalty=np.where(ci_counts<8,40,0)
-    certpenalty=np.where(certval<7,20,0)
-
-    raw_exfilpenalty=exfratio*5
-    exfilpenalty=np.where(raw_exfilpenalty>40,40,raw_exfilpenalty)
-    exfilpenalty=np.where(byts>1000,exfilpenalty,0)  #filtering out tiny background noise
-
-    #defining masks
-    totalpenalty=cipenalty+certpenalty+exfilpenalty
+    exfratio = np.zeros(total_cons, dtype=np.uint64)#preallocate zero so that calculation happens only when byts !=0
+    np.floor_divide(byts*100,bytr,out=exfratio,where=(bytr != 0))
+    
+    raw_exfilpenalty=(exfratio*5)//100
+    np.minimum(raw_exfilpenalty, 40, out=raw_exfilpenalty)
+    np.add(totalpenalty,raw_exfilpenalty,out=totalpenalty,where=(byts>1000))  #filtering out tiny background noise
 
     critical=totalpenalty>50
     criticalids=con_ids[critical]
     criticalscores=totalpenalty[critical]
     
     #sorting begins
-    sortedin=np.argsort(-criticalscores) #decreasing order
-    sortedids=criticalids[sortedin]
-    sortedscores=criticalscores[sortedin]
+    sortedin=np.argsort(criticalscores, kind='stable')[::-1] #avoid negation
+
+    dtype_struct=[('con-id',np.uint64),('risk_score', np.uint64)]
+    prioritisedincidents=np.empty(sortedin.size,dtype=dtype_struct)
+    if sortedin.size:
+       prioritisedincidents['con-id']=criticalids[sortedin]
+       prioritisedincidents['risk_score']=criticalscores[sortedin]
 
     #summary of audit
-    total_cons = net_strm.shape[0]
-    mal= totalpenalty > 0  #Anything that can pose as a threat is malicious so safe ids would only be ones with total penalty=0
-    overallthreat=(np.sum(mal) / total_cons)*100
+    mal= np.count_nonzero(totalpenalty>0)  #Anything that can pose as a threat is malicious so safe ids would only be ones with total penalty=0
+    overallthreat=(mal / total_cons)*100
 
-    prioritisedincidents=np.column_stack((sortedids,sortedscores))
     return {
-        "prioritised_incidents": prioritisedincidents.tolist(),
+        "prioritised_incidents": prioritisedincidents,
         "threat_percentage": round(overallthreat, 2)
     }
 
@@ -61,11 +70,11 @@ if __name__ == "__main__":
     np.random.seed(42)
     total_records = 10000
     
-    conn_ids = np.arange(1000, 1000 + total_records)
-    ciphers  = np.random.randint(15, 30, size=total_records)
-    b_sent   = np.random.randint(500, 5000, size=total_records)
-    b_recv   = np.random.randint(2000, 20000, size=total_records)
-    v_days   = np.random.randint(90, 365, size=total_records)
+    conn_ids = np.arange(1000, 1000 + total_records, dtype=np.uint64)
+    ciphers  = np.random.randint(15, 30, size=total_records, dtype=np.uint64)
+    b_sent   = np.random.randint(500, 5000, size=total_records, dtype=np.uint64)
+    b_recv   = np.random.randint(2000, 20000, size=total_records, dtype=np.uint64)
+    v_days   = np.random.randint(90, 365, size=total_records, dtype=np.uint64)
     
     # inject malicious anomalies
     ciphers[150] = 5;   b_sent[150] = 85000;  b_recv[150] = 1200
@@ -73,7 +82,7 @@ if __name__ == "__main__":
     v_days[412] = 3;     b_sent[412] = 120000; b_recv[412] = 800
     v_days[7055] = 1
     
-    simulated_traffic = np.column_stack((conn_ids, ciphers, b_sent, b_recv, v_days)).astype(np.uint64)
+    simulated_traffic = np.column_stack((conn_ids, ciphers, b_sent, b_recv, v_days))
     start= time.perf_counter()
     forensic_report = tls_audit_advanced(simulated_traffic)
     end=time.perf_counter()
@@ -88,7 +97,9 @@ if __name__ == "__main__":
     print(f"Vector engine latency: {latency:.4f} ms")
     print("\n \n Prioristised Crtical Incidents")
     for incident in forensic_report['prioritised_incidents']:
-        print(f"   -> Connection ID: {int(incident[0])} | Risk Score: {incident[1]}")
+        con_id = int(incident['con-id'])
+        score = int(incident['risk_score'])
+        print(f"   -> Connection ID: {con_id} | Risk Score: {score}")
 
 
 
