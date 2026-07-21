@@ -66,11 +66,11 @@ python P_analytics_visualizer.py
 
 • **Mechanism:** Mathematical scoring of TLS Handshake metadata (JA3 mismatch indicators, exfiltration ratios) to detect Command & Control (C2) beaconing. Implements safe branchless division (`np.divide` with `out=zeros_like`) to prevent Divide-by-Zero CPU interrupts, and utilizes $O(N \log N)$ native `argsort` for dynamic threat prioritization.
 
-### 4. Polyglot Optimization (The C-Bridge)
+### 4. Polyglot Optimization (The C-Bridge & Zero-Copy Architecture)
 
 • **Files:** `P_bridge.py`, `P_native_core.c`
 
-• **Mechanism:** To mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. The architecture employs `ctypes` to pack data into strict 32-byte structs (perfectly aligned for 64-byte CPU cache fetches), achieving bare-metal execution latencies which are consistently sub-milisecond **(<1.0 ms)**.
+• **Mechanism:** To mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. The architecture employs numpy.ctypeslib to pass structured array memory pointers directly to the C engine (Zero-Copy). By packing data into strict 32-byte structs (perfectly aligned for 64-byte CPU cache fetches) and dynamically passing OS-specific whitelist masks at runtime, the engine audits 100,000 rows with a verifiable bare-metal execution latency of **~0.42 ms.**
 
 ### 5. Data Integrity (The Crypto Guard)
 
@@ -89,9 +89,9 @@ To validate the scalability and computational bounds of the whitelist architectu
 | Metric | Evaluation Value | Hardware Impact|
 | :--- | :--- | :--- |
 | **Total Telemetry Rows Audited** | 100,000 | High-density load simulation |
-| **C-Engine Native Latency** |<0.20ms |Sub-milisecond evaluation |
-| **Mathematical Execution Latency** |  ~0.25 ms(avg)| Loop-free python orchestation|
-| **Peak Heap Allocation** | 489.23 KB |Empirical  $O(1)$ space complexity|
+| **C-Engine Native Latency** |~0.42ms |Sub-milisecond evaluation |
+| **Mathematical Execution Latency** |  ~1.81ms| Loop-free Numpy orchestation|
+| **Peak Heap Allocation** | 489.16 KB |Empirical  $O(1)$ space complexity|
 | **System Threat Score** | 0.0%| Flawless false-positive whitelist routing
 
 
@@ -147,6 +147,6 @@ OK
 ---
 
 
-## Execution Benchmark
+## 🔖 Execution Benchmark
 
 ![Bare Metal Linux Execution Benchmark](baremetal_execution_benchmark.png)

@@ -14,9 +14,17 @@ typedef struct {
 
 /**
  * Parses telemetry buffer to isolate zombie/ghost processes holding RAM with 0 threads.
- * Skips trusted kernel PIDs (4, 76).
+ * Skips trusted kernel PIDs (patch)which are now provided dynamically
  */
-int32_t process_telemetry_stream(const ProcessTelemetry* dataset, int32_t total_rows, uint64_t* alert_buffer , int32_t max_alerts,int32_t* total_alerts) { //function signature
+int32_t process_telemetry_stream(
+    const ProcessTelemetry* dataset,
+    int32_t total_rows,
+    uint64_t* alert_buffer ,
+    int32_t max_alerts,
+    int32_t* total_alerts,
+    const uint64_t* whitelist_mask,
+    int32_t whitelist_size
+) { //function signature
     
     // Hard fail on invalid memory addresses(Null Pointers)
     if (!dataset || !alert_buffer || !total_alerts) {
@@ -35,14 +43,24 @@ int32_t process_telemetry_stream(const ProcessTelemetry* dataset, int32_t total_
     // Process stream using direct array indexing instead of pointer walking #O(1) memory allocation
     while (idx < total_rows) {
         uint64_t target_pid= dataset[idx].pid;
+        uint8_t is_whitelisted = 0;
 
-        // OPTIMIZATION: Branch Prediction Bypass
-        // Check whitelist FIRST. If matched, jump instantly to next cycle.
-        // Saves CPU from evaluating thread_count/ram_bytes on benign processes.
-        if (target_pid == 4 || target_pid == 76) {
+        // OPTIMIZATION: dynamic whitelist evaluation
+        if (whitelist_mask != NULL && whitelist_size > 0) {
+           for (int32_t w = 0; w < whitelist_size; w++) {
+             if (target_pid == whitelist_mask[w]) {
+               is_whitelisted = 1;
+               break;
+             }
+            }
+        }
+
+        // Branch Prediction Bypass
+        if (is_whitelisted) {
             idx++;
             continue; 
         }
+
         
         // Target anomalous state: inactive threads but unreleased memory
         if (dataset[idx].thread_count == 0 && dataset[idx].ram_bytes > 0) {
