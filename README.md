@@ -56,17 +56,17 @@ python P_analytics_visualizer.py
 
 • **Mechanism:** Utilizes bulk OS Snapshot APIs via `psutil` to pull the entire live process table into User Space in a single System Call, dropping kernel context switches from $O(N)$ to $O(1)$.
 
-•**Performance:**Normalizes and scores live systems (e.g., 278 concurrent processes) with a warm cache latency of **~0.14 ms**.
+•**Performance:**Normalizes and scores live systems (e.g., 278 concurrent processes) with a warm cache latency of **~0.10 ms**.
 
 • **Known Limitations:** Operates in Ring-3 (User Space). Acknowledged vulnerability to Ring-0 Rootkits that hook native OS APIs prior to ingestion.
 
 ### 2. Algorithmic Triage (The Vector Engine)
 
-• **File:** `(P)memory_integrity_detector.py`
+• **File:** `(P)memory_integrity_detector.py` , `
 
-• **Mechanism:** Achieves processing latency of ~0.25(on an average) ms over a 100,000-row telemetry matrix. By utilizing native heap allocation tracing (`tracemalloc`), the engine proved that its peak memory footprint remains flat and bounded at just **489 KB**. Calculations are executed as shared memory views (boolean masks) rather than costly data duplications, preventing runtime Out-Of-Memory (OOM) failures under heavy throughput.
+• **Mechanism:** Achieves processing latency of ~1.81 ms over a 100,000-row telemetry matrix. By utilizing native heap allocation tracing (`tracemalloc`), the engine proved that its peak memory footprint remains flat and bounded at just **456.51 KB**. Calculations are executed as shared memory views (boolean masks) rather than costly data duplications, preventing runtime Out-Of-Memory (OOM) failures under heavy throughput.
 
-•**Performance:**Achieves sub-millisecond latency (averaging **~0.12 ms**) while sweeping a dense 5,000-page memory matrix to identify rogue code injection and hidden payloads.
+•**Performance:**Achieves sub-millisecond latency (averaging **~0.09 ms**) while sweeping a dense 5,000-page memory matrix to identify rogue code injection and hidden payloads.
 
 ### 3. Network Analytics (Advanced TLS Triage)
 
@@ -101,7 +101,7 @@ To validate the scalability and computational bounds of the whitelist architectu
 | :--- | :--- | :--- |
 | **Total Telemetry Rows Audited** | 100,000 | High-density load simulation |
 | **C-Engine Native Latency** |~0.42ms |Zero-copy bare-metal evaluation |
-| **Mathematical Execution Latency** |  ~1.81ms| Loop-free Numpy orchestation|
+| **Mathematical Execution Latency** |  ~1.70ms| Loop-free Numpy orchestation|
 | **Peak Heap Allocation** | 456.51 KB |Empirical  $O(1)$ space complexity|
 | **System Threat Score** | 0.0%| Zero-copy bare-metal evaluation|
 
@@ -121,12 +121,12 @@ By feeding contiguous uint64 memory blocks directly into the CPU's Arithmetic Lo
 
 **Cold Start Latency (Disk/RAM load):** `1.39 ms`
 
-**Warm Cache Latency (L1/L2 CPU Cache hit):** `0.13 ms`
+**Warm Cache Latency (L1/L2 CPU Cache hit):** `0.0830 ms`
 
 ### Case Study 2: Pipeline Cryptographic Tamper Defense
-To protect the system from broken access control overrides and database tampering vulnerabilities, the `P_crypto_shielderr.py` component serves as an active Pipeline Guard layer. It calculates streaming SHA-256 signatures over active SIEM runtime telemetry JSON log blocks.
+To protect the system from broken access control overrides and database tampering vulnerabilities, the `P_crypto_shielderr.py` component serves as an active Pipeline Guard layer. It calculates streaming SHA-256 signatures over active SIEM runtime telemetry JSON log blocks in a continuous loop.
 
-**Live Simulation Results:** When client-side parameter injection overrides database configurations, the engine registers a clear cryptographic signature mutation **($6f8ad8... \neq e988ad...$)**. The runtime environment automatically purges simulation artifacts and short-lived execution files properly to prevent persistent memory overhead or tracking drift.
+**Live Simulation Results:** When client-side parameter injection overrides database configurations, the daemon instantly registers a clear cryptographic signature mutation **($55d24b...  \neq 7e1c5f...$)**. 
 
 ```
 Initialising cryptographic integrity validation routine...
@@ -149,7 +149,8 @@ Initialising cryptographic integrity validation routine...
      -> Mismatch flagged: Unsanitized writes located in system log array.
 ```
 ## 🧪 CI/CD Testing & Latency Constraints
-To ensure the integrity of the detection logic, the engine relies on a strict `unittest` suite. Beyond standard assertions, the pipeline enforces a **Hard Hardware Latency Constraint**, intentionally failing builds if the C-Engine and Python orchestrator fail to process 10,000 records within a 25.0ms threshold.
+To ensure the integrity of the detection logic, the engine relies on a strict `unittest` suite. Beyond standard assertions, the pipeline enforces a **Hard Hardware Latency Constraint**, intentionally failing builds if the C-Engine and Python orchestrator fail to process 10,000 records within a **5.0 ms** threshold.
+
 ```
 [RUNNING] Executing Native C-Engine Test Suite validations...
 test_c_engine_latency_constraint (__main__.TestNativeSecurityEngine.test_c_engine_latency_constraint) ... ok
@@ -158,14 +159,9 @@ test_kernel_whitelist_bypass (__main__.TestNativeSecurityEngine.test_kernel_whit
 test_stealth_threat_detection (__main__.TestNativeSecurityEngine.test_stealth_threat_detection) ... ok
 
 ----------------------------------------------------------------------
-Ran 4 tests in 0.021s
+Ran 4 tests in 0.004s
 
 OK
-
 ```
 ---
 
-
-## 🔖 Execution Benchmark
-
-![Bare Metal Linux Execution Benchmark](baremetal_execution_benchmark.png)
