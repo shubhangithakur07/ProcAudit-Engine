@@ -23,23 +23,28 @@ To deploy and execute the validation benchmarking suite locally, initialize your
 ```powershell
 # 1. Clone the core security architecture
 git clone https://github.com/shubhangithakur07/ProcAudit-Engine.git
+cd ProcAudit-Engine
 
 # 2. Initialize and activate isolated virtual environment
 python -m venv venv
-.\venv\Scripts\Activate.ps1
 
-# 3. Ingest deterministic dependencies
+# Activate (Windows PowerShell):
+.\venv\Scripts\Activate.ps1
+# Activate (Linux/macOS):
+source venv/bin/activate
+
+# 3. Ingest deterministic dependencies (psutil, numpy, matplotlib)
 pip install -r requirements.txt
 
 # 4. Execute the mathematical unit-testing verification suite
-python    P_test_engine.py
-python  "(P)test_vector_engine.py"
+python P_test_engine.py
+python "(P)test_vector_engine.py"
 
 # 5. Run the high-density performance matrix profiler
 python P_performance_profiler.py
 
-#6. Generate the visual analytics dashboard
-python P_analytics_visualiser.py
+# 6. Generate the visual analytics dashboard
+python P_analytics_visualizer.py
 
 ```
 
@@ -124,16 +129,24 @@ To protect the system from broken access control overrides and database tamperin
 **Live Simulation Results:** When client-side parameter injection overrides database configurations, the engine registers a clear cryptographic signature mutation **($6f8ad8... \neq e988ad...$)**. The runtime environment automatically purges simulation artifacts and short-lived execution files properly to prevent persistent memory overhead or tracking drift.
 
 ```
-[*] Ingesting active pipeline log: ./siem_logs/incident_report_20260619_193314.json
-[+] Pristine Baseline Hash Generated:
-    -> 6f8ad8c91db93b05caf81b72f89b0f06046d9a83772d7b1462d2735b063d2bed
+Initialising cryptographic integrity validation routine...
+     __CRYPTOGRAPHIC INTEGRITY MONITOR__        
+ Scanning directory for active telemetry streams: ./siem_logs
+ [+] Locked onto active pipeline log: ./siem_logs\incident_report_20260721_111215.json
+ Pristine Baseline Hash Generated:
+    -> 55d24bd48a9e409c70936d07dfe0de117aee3025b3d47e1d8e578f60690385f2
 
-[*] Running simulation: Attempting unauthorized parameter manipulation...
-[!] Mutated File Cryptographic Signature:
-    -> e988ad8bccdb0f620732a4bd3b30200bda10bc1c3e4e09e3bf6522f1eac18f56
+ [*] Entering continuous polling state (Monitoring for out-of-band tampering)...
+     (To test: open the JSON file and manually change a value, then save)
+     [+] Cycle 1/6: Log integrity verified clean.
+     [+] Cycle 2/6: Log integrity verified clean.
+     [+] Cycle 3/6: Log integrity verified clean.
+     [+] Cycle 4/6: Log integrity verified clean.
 
-[CRITICAL ALERT] TELEMETRY INTEGRITY BREACH DETECTED!
-    -> Mismatch flagged: Unsanitized writes located in system log array.
+ [CRITICAL ALERT] TELEMETRY INTEGRITY BREACH DETECTED!
+     -> Baseline : 55d24bd48a9e409c70936d07dfe0de117aee3025b3d47e1d8e578f60690385f2
+     -> Mutated  : 7e1c5f73930819d0c9b9ba2cfcb1f47dabb5b94aa43c19c95cd2d01dfe973efd
+     -> Mismatch flagged: Unsanitized writes located in system log array.
 ```
 ## 🧪 CI/CD Testing & Latency Constraints
 To ensure the integrity of the detection logic, the engine relies on a strict `unittest` suite. Beyond standard assertions, the pipeline enforces a **Hard Hardware Latency Constraint**, intentionally failing builds if the C-Engine and Python orchestrator fail to process 10,000 records within a 25.0ms threshold.
