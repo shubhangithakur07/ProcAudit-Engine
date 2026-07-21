@@ -24,18 +24,19 @@ def profile_computational_limits():
 
     #injecting pid 76 whitelist exception to check reaction of filter
     mock_matrix[75]=[76,45*MB,0,120]
+    whitelist_mask=np.array([4,76,1001], dtype=np.uint64)
 
     #Warmup lap to force the cpu to load instructions to L1 cache
     print("Executing CPU L1 Cache Warm-Up Lap...")
     warmup_matrix=np.zeros((10,4),dtype=np.uint64)
-    liveaudit.audit_live_kernel_vectors(warmup_matrix)
+    liveaudit.audit_live_kernel_vectors(warmup_matrix,whitelist_mask)
 
     #start tracemalloc and timing now because we need the timing stats for this SUT no the geberation of mockmatrix etc
     tracemalloc.start()
     start=time.perf_counter()
 
     #executing analytics engine
-    metrics=liveaudit.audit_live_kernel_vectors(mock_matrix)
+    metrics=liveaudit.audit_live_kernel_vectors(mock_matrix, whitelist_mask)
 
     end=time.perf_counter()
     current,peak=tracemalloc.get_traced_memory()
