@@ -14,7 +14,16 @@ INPUT FORMAT & CONSTRAINTS:
 import numpy as np
 import time
 
-def tls_audit_advanced(net_strm: np.ndarray) -> dict:
+thresholds={
+    "ci_min":8,
+    "cert_min":7,
+    "noise":1000,
+    "std_exfilcap":40,
+    "pure_exfilpenalty":60,
+    "critical":50
+}
+
+def tls_audit_advanced(net_strm: np.ndarray, config: dict = thresholds) -> dict:
 
     total_cons= net_strm.shape[0]
     if total_cons==0:
@@ -31,17 +40,18 @@ def tls_audit_advanced(net_strm: np.ndarray) -> dict:
 
     #single workspace array allocation
     totalpenalty=np.zeros(total_cons, dtype=np.uint64)
-    np.add(totalpenalty, 40, out=totalpenalty, where=(ci_counts < 8))
-    np.add(totalpenalty, 20, out=totalpenalty, where=(certval < 7))
+    np.add(totalpenalty, 40, out=totalpenalty, where=(ci_counts < config["ci_min"]))
+    np.add(totalpenalty, 20, out=totalpenalty, where=(certval < config["cert_min"]))
 
     exfratio = np.zeros(total_cons, dtype=np.uint64)#preallocate zero so that calculation happens only when byts !=0
     np.floor_divide(byts*100,bytr,out=exfratio,where=(bytr != 0))
     
     raw_exfilpenalty=(exfratio*5)//100
-    np.minimum(raw_exfilpenalty, 40, out=raw_exfilpenalty)
-    np.add(totalpenalty,raw_exfilpenalty,out=totalpenalty,where=(byts>1000))  #filtering out tiny background noise
+    np.minimum(raw_exfilpenalty, config["std_exfilcap"], out=raw_exfilpenalty)
+    np.add(totalpenalty,raw_exfilpenalty,out=totalpenalty,where=(byts> config["noise"])&(bytr !=0))  #filtering out tiny background noise
+    np.add(totalpenalty,config["pure_exfilpenalty"], out= totalpenalty,where=((byts>config["noise"])&(bytr ==0))) #fix blindspot:max penalty in case of pure data exfiltration
 
-    critical=totalpenalty>50
+    critical=totalpenalty>config["critical"]
     criticalids=con_ids[critical]
     criticalscores=totalpenalty[critical]
     
@@ -53,9 +63,9 @@ def tls_audit_advanced(net_strm: np.ndarray) -> dict:
     if sortedin.size:
        prioritisedincidents['con-id']=criticalids[sortedin]
        prioritisedincidents['risk_score']=criticalscores[sortedin]
-
+    
     #summary of audit
-    mal= np.count_nonzero(totalpenalty>0)  #Anything that can pose as a threat is malicious so safe ids would only be ones with total penalty=0
+    mal= np.count_nonzero(critical)  
     overallthreat=(mal / total_cons)*100
 
     return {
@@ -81,8 +91,10 @@ if __name__ == "__main__":
     ciphers[920] = 4;   b_sent[920] = 120000; b_recv[920] = 800
     v_days[412] = 3;     b_sent[412] = 120000; b_recv[412] = 800
     v_days[7055] = 1
+    b_sent[5555] = 900000; b_recv[5555] = 0 #pure exfiltration
     
     simulated_traffic = np.column_stack((conn_ids, ciphers, b_sent, b_recv, v_days))
+    _ = tls_audit_advanced(simulated_traffic[:10])
     start= time.perf_counter()
     forensic_report = tls_audit_advanced(simulated_traffic)
     end=time.perf_counter()
@@ -93,10 +105,12 @@ if __name__ == "__main__":
     print(" ADVANCED METRIC SCORING AND TRIAGE SECURITY ENGINE")
     print("---------------------------------------------------------")
     print(f"Total network connections scanned:{total_records}")
-    print(f"Overall threat percentage: {forensic_report['threat_percentage']}")
+    print(f"Overall critical threat percentage: {forensic_report['threat_percentage']}%")
     print(f"Vector engine latency: {latency:.4f} ms")
-    print("\n \n Prioristised Crtical Incidents")
-    for incident in forensic_report['prioritised_incidents']:
+    print("\n  Prioristised Crtical Incidents(Top 5)")
+    limit = min(5, len(forensic_report['prioritised_incidents']))
+    for i in range(limit):
+        incident= forensic_report['prioritised_incidents'][i]
         con_id = int(incident['con-id'])
         score = int(incident['risk_score'])
         print(f"   -> Connection ID: {con_id} | Risk Score: {score}")
