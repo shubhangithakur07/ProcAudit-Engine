@@ -23,7 +23,6 @@ To deploy and execute the validation benchmarking suite locally, initialize your
 ```powershell
 # 1. Clone the core security architecture
 git clone https://github.com/shubhangithakur07/ProcAudit-Engine.git
-cd quantiative_engine
 
 # 2. Initialize and activate isolated virtual environment
 python -m venv venv
@@ -33,14 +32,14 @@ python -m venv venv
 pip install -r requirements.txt
 
 # 4. Execute the mathematical unit-testing verification suite
-python -m unittest P_test_engine.py
-python -m unittest P_test_vector_engine.py
+python    P_test_engine.py
+python  "(P)test_vector_engine.py"
 
 # 5. Run the high-density performance matrix profiler
 python P_performance_profiler.py
 
 #6. Generate the visual analytics dashboard
-python P_analytics_visualizer.py
+python P_analytics_visualiser.py
 
 ```
 
