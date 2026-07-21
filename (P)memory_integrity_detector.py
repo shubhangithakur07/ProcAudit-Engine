@@ -3,17 +3,16 @@ import time
 
 def audit_memory_integrity(memory_matrix: np.ndarray) -> dict:
     pgid = memory_matrix[:, 0]       # tracking purpose
-    processid = memory_matrix[:, 1]  # system id of parent aplication
     is_signed = memory_matrix[:, 2]  # 1-signed 0-unsigned
     permission = memory_matrix[:, 3] # 1=read only, 2=read/write, 3=read/write/execute
-    entrpy = memory_matrix[:, 4]     # measuring data randomness 
+    entropy = memory_matrix[:, 4]     # measuring data randomness 
 
     # Threat 1: Unsigned pages with Write/Execute permissions (Catches injected code)
     injected_mask = (is_signed == 0) & (permission == 3)
     
     # Threat 2: Unsigned pages with high entropy (Catches packed/encrypted malware)
     # FIXED-POINT MATH:We use 650 instead of 6.5 because we multiplied entropy by 100 to bypass using decimals so we can use blazing-fast uint64 hardware integers
-    packed_mask = (is_signed == 0) & (entrpy > 650)
+    packed_mask = (is_signed == 0) & (entropy > 650)
     
     # Combine masks using bitwise OR
     malicious_mask = injected_mask | packed_mask
@@ -23,7 +22,9 @@ def audit_memory_integrity(memory_matrix: np.ndarray) -> dict:
 
     # Calculate global host compromise metrics
     total_pages = memory_matrix.shape[0]
-    overall_threat = (np.sum(malicious_mask) / total_pages) * 100
+    overall_threat=0
+    if total_pages >0 :
+        overall_threat = (np.sum(malicious_mask) / total_pages) * 100
 
     return {
         "injected_pages": injected_ids.astype(int).tolist(),
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     
     # Bind arrays into a 2D matrix, forcefully casting to hardware-efficient uint64
     simulated_memory = np.column_stack((page_ids, process_ids, signatures, permissions, entropy)).astype(np.uint64)
-    
+    _ = audit_memory_integrity(simulated_memory[:10])
     #timer
     start_time = time.perf_counter()
     report = audit_memory_integrity(simulated_memory)
