@@ -18,6 +18,7 @@ class TestVectorSecurityEngine(unittest.TestCase):
     #setup for simulation testing
     self.MB = 1024 * 1024
     self.FIFTY_MB = 50 * self.MB
+    self.dwhitelist = np.array([4, 76], dtype=np.uint64)   #the refactored engine requires dynamic masks
 
    def test_whitelist_mitigation(self):
     """PROVE: PID 76 and PID 4 do not trigger false alerts despite zero threads."""
@@ -27,7 +28,8 @@ class TestVectorSecurityEngine(unittest.TestCase):
             [76, 35 * self.MB, 0, 20],  # Registry (Benign Exception)
             [4,  10 * self.MB, 0, 450]  # Kernel Core (Benign Exception)
         ], dtype=np.uint64)
-    result = audit_live_kernel_vectors(mock_krnl)
+    
+    result = audit_live_kernel_vectors(mock_krnl, self.dwhitelist)
     self.assertEqual(len(result["orphaned_stealth_suspects"]), 0)
     self.assertEqual(result["compromise_percentage"], 0.0)
 
@@ -36,7 +38,8 @@ class TestVectorSecurityEngine(unittest.TestCase):
     mock_krnl = np.array([
             [999, 85 * self.MB, 0, 15]  #orphaned stealth threat injected
         ], dtype=np.uint64)
-    result=audit_live_kernel_vectors(mock_krnl)
+    
+    result=audit_live_kernel_vectors(mock_krnl, self.dwhitelist)
     self.assertIn(999, result["orphaned_stealth_suspects"])
     self.assertEqual(result["compromise_percentage"], 100.0)
 
@@ -45,12 +48,13 @@ class TestVectorSecurityEngine(unittest.TestCase):
         """PROVE: A process with normal thread count but excessive handles is flagged."""
         mock_krnl = np.array([
             [101, 15 * self.MB, 4, 12000]  #highly abnormal number of open handles even though no of active threads is just 4.0
-        ], dtype=np.float64)
+        ], dtype=np.uint64)
         
-        result = audit_live_kernel_vectors(mock_krnl)
+        result = audit_live_kernel_vectors(mock_krnl, self.dwhitelist)
         
         self.assertIn(101, result["resource_exhaustion_suspects"])  
         self.assertEqual(result["compromise_percentage"], 100.0)
+
    def test_engine_latency_constraints(self):
         """PROVE: The vectorized engine processes 100,000 synthetic records in under 15 milliseconds."""
         # Generate 100,000 rows of fake benign data using NumPy arrays
@@ -61,13 +65,15 @@ class TestVectorSecurityEngine(unittest.TestCase):
         mock_krnl[:, 3] = 50                      # 50 Handles each
         
        
-        start_time = time.perf_counter()
-        audit_live_kernel_vectors(mock_krnl)
-        end_time = time.perf_counter()
-        latency_ms = (end_time - start_time) * 1000
+        start = time.perf_counter()
+        audit_live_kernel_vectors(mock_krnl, self.dwhitelist)
+        end = time.perf_counter()
+        latency_ms = (end - start) * 1000
         
-        #Lie Detector: If it takes longer than 15.0 milliseconds, FAIL THE TEST.
-        self.assertLess(latency_ms, 15.0, f"Engine performance degraded! Took {latency_ms:.2f} ms")
+        #Lie Detector: If it takes longer than 3.5 milliseconds, FAIL THE TEST.
+        self.assertLess(latency_ms, 3.5, f"Engine performance degraded! Took {latency_ms:.2f} ms")
 
 if __name__=="__main__":
-  unittest.main()  
+  print("[RUNNING] Executing Python Vector Engine validations...")
+  unittest.main(verbosity=2)
+  
