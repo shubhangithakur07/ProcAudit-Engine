@@ -52,6 +52,8 @@ python P_analytics_visualizer.py
 
 • **Mechanism:** Utilizes bulk OS Snapshot APIs via `psutil` to pull the entire live process table into User Space in a single System Call, dropping kernel context switches from $O(N)$ to $O(1)$.
 
+•**Performance:**Normalizes and scores live systems (e.g., 278 concurrent processes) with a warm cache latency of **~0.14 ms**.
+
 • **Known Limitations:** Operates in Ring-3 (User Space). Acknowledged vulnerability to Ring-0 Rootkits that hook native OS APIs prior to ingestion.
 
 ### 2. Algorithmic Triage (The Vector Engine)
@@ -59,6 +61,8 @@ python P_analytics_visualizer.py
 • **File:** `(P)memory_integrity_detector.py`
 
 • **Mechanism:** Achieves processing latency of ~0.25(on an average) ms over a 100,000-row telemetry matrix. By utilizing native heap allocation tracing (`tracemalloc`), the engine proved that its peak memory footprint remains flat and bounded at just **489 KB**. Calculations are executed as shared memory views (boolean masks) rather than costly data duplications, preventing runtime Out-Of-Memory (OOM) failures under heavy throughput.
+
+•**Performance:**Achieves sub-millisecond latency (averaging **~0.12 ms**) while sweeping a dense 5,000-page memory matrix to identify rogue code injection and hidden payloads.
 
 ### 3. Network Analytics (Advanced TLS Triage)
 
@@ -70,7 +74,10 @@ python P_analytics_visualizer.py
 
 • **Files:** `P_bridge.py`, `P_native_core.c`
 
-• **Mechanism:** To mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. The architecture employs numpy.ctypeslib to pass structured array memory pointers directly to the C engine (Zero-Copy). By packing data into strict 32-byte structs (perfectly aligned for 64-byte CPU cache fetches) and dynamically passing OS-specific whitelist masks at runtime, the engine audits 100,000 rows with a verifiable bare-metal execution latency of **~0.42 ms.**
+• **Mechanism:** o mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. Update: Implemented zero-copy memory pointers via numpy.ctypeslib and injected dynamic OS kernel whitelisting, entirely removing hard-coded PIDs to establish OS parity.
+
+
+**Performance:**Audits a high-density, 100,000-row telemetry matrix natively in C. Hardware latency routinely benchmarks at **~0.42 ms.**
 
 ### 5. Data Integrity (The Crypto Guard)
 
@@ -89,10 +96,10 @@ To validate the scalability and computational bounds of the whitelist architectu
 | Metric | Evaluation Value | Hardware Impact|
 | :--- | :--- | :--- |
 | **Total Telemetry Rows Audited** | 100,000 | High-density load simulation |
-| **C-Engine Native Latency** |~0.42ms |Sub-milisecond evaluation |
+| **C-Engine Native Latency** |~0.42ms |Zero-copy bare-metal evaluation |
 | **Mathematical Execution Latency** |  ~1.81ms| Loop-free Numpy orchestation|
-| **Peak Heap Allocation** | 489.16 KB |Empirical  $O(1)$ space complexity|
-| **System Threat Score** | 0.0%| Flawless false-positive whitelist routing
+| **Peak Heap Allocation** | 456.51 KB |Empirical  $O(1)$ space complexity|
+| **System Threat Score** | 0.0%| Zero-copy bare-metal evaluation|
 
 
 
