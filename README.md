@@ -1,6 +1,6 @@
 # 🌐ProcAudit Engine (Real-Time Cybersecurity Telemetry Engine)
 
-A high-performance, real-time threat detection engine designed to monitor system telemetry, memory integrity, and network metadata.Built to bypass standard interpreted language bottlenecks, this engine utilizes C-Bridges, NumPy SIMD vectorization, and cache-aligned memory optimization to evaluate massive process and network datasets with sub-millisecond latency.
+A high-performance, real-time threat detection engine designed to monitor system telemetry, memory integrity, and network metadata.Built to bypass standard interpreted language bottlenecks, this engine utilizes C-Bridges, NumPy SIMD vectorization,Memory-Mapped I/O (mmap) and cache-aligned memory optimization to evaluate massive process and network datasets with sub-millisecond latency.
 
 ![Security Engine Dashboard](./enterprise_security_dashboard.png)
 
@@ -15,6 +15,8 @@ This engine was built under strict engineering constraints to achieve empirical 
 2.**Hardware Alignment:** Strict upcasting to `uint64_t` to bypass Floating Point Unit (FPU) latency.
 
 3.**Contiguous Memory:** Leveraging C-arrays to ensure data fits cleanly within CPU L1/L2 cache lines.
+
+4.**Zero-Copy Disk I/O:**Implementation of Memory-Mapped virtual memory bridges to read payload data directly from physical disks without OS kernel copying.
 
 ## 🚀 Quickstart & Reproduction Guide
 
@@ -40,10 +42,13 @@ pip install -r requirements.txt
 python P_test_engine.py
 python "(P)test_vector_engine.py"
 
-# 5. Run the high-density performance matrix profiler
+# 5. Execute the zero-copy ingestion benchmarks
+python P_mmap_bridge.py
+
+# 6. Run the high-density performance matrix profiler
 python P_performance_profiler.py
 
-# 6. Generate the visual analytics dashboard
+# 7. Generate the visual analytics dashboard
 python P_analytics_visualizer.py
 
 ```
@@ -76,12 +81,24 @@ python P_analytics_visualizer.py
 
 ### 4. Polyglot Optimization (The C-Bridge & Zero-Copy Architecture)
 
-• **Files:** `P_bridge.py`, `P_native_core.c`
+• **Files:** `P_bridge.py`, `P_native_core.c`, `P_mmap_bridge.py`
 
-• **Mechanism:** o mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. Update: Implemented zero-copy memory pointers via numpy.ctypeslib and injected dynamic OS kernel whitelisting, entirely removing hard-coded PIDs to establish OS parity.
-
+• **Mechanism:** o mirror industrial EDR (Endpoint Detection & Response) systems, raw matrix ingestion is shifted into a compiled, native C-contiguous shared library. Update: Implemented zero-copy memory pointers via numpy.ctypeslib and injected dynamic OS kernel whitelisting, entirely removing hard-coded PIDs to establish OS parity.Advanced iterations utilize mmap to map physical binaries directly to RAM.
 
 **Performance:**Audits a high-density, 100,000-row telemetry matrix natively in C. Hardware latency routinely benchmarks at **~0.42 ms.**
+
+**Empirical Hardware Execution Benchmarks (Zero-Copy mmap I/O):**
+```
+[*] Generating synthetic 10MB binary log (300,000 telemetry rows)...
+[*] Target Log: massive_sensor_dump.bin | 9.16 MB | 300,000 Rows
+ ⚡ ZERO-COPY DISK-TO-CPU EXECUTION METRICS ⚡ 
+------------------------------------------------------------
+Size of file processed   : 9.16 MB
+Total Rows Audited       : 300,000
+Disk-to-C Latency        : 3.3758 ms
+Detected Threats         : 1
+Critical PIDs         : [999] ...
+```
 
 ### 5. Data Integrity (The Crypto Guard)
 
@@ -101,7 +118,7 @@ To validate the scalability and computational bounds of the whitelist architectu
 | :--- | :--- | :--- |
 | **Total Telemetry Rows Audited** | 100,000 | High-density load simulation |
 | **C-Engine Native Latency** |~0.42ms |Zero-copy bare-metal evaluation |
-| **Mathematical Execution Latency** |  ~1.70ms| Loop-free Numpy orchestation|
+| **mmap Disk-to-CPU (300k Rows)** |  ~3.37ms| Zero-copy Kernel I/O bypass|
 | **Peak Heap Allocation** | 456.51 KB |Empirical  $O(1)$ space complexity|
 | **System Threat Score** | 0.0%| Zero-copy bare-metal evaluation|
 
