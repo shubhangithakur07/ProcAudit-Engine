@@ -62,43 +62,46 @@ def zero_copy_log_ingestion(filepath: str, whitelist_pids: list):
     total_rows = file_size // ctypes.sizeof(ProcessTelemetry)
     print(f"[*] Target Log: {filepath} | {file_size / (1024*1024):.2f} MB | {total_rows:,} Rows")
 
-    #output buffer and dynamic whitelist
+    #output buffer and dynamic whitelist (patch) apply hard cap for O(1) space complexity
+    max_alerts=1024
     whitelist_size = len(whitelist_pids)
     whitelist_c_array = (ctypes.c_uint64 * whitelist_size)(*whitelist_pids)
-    out_alerts = (ctypes.c_uint64 * total_rows)()
+    out_alerts = (ctypes.c_uint64 * max_alerts)()
     alert_total = ctypes.c_int32(0)
 
-    start = time.perf_counter()
     try:
         with open(filepath, "r+b") as f:
             #map physical disk to Virtual RAM
-            with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ) as mm:
-                #read raw bytes from the mmap buffer
-                raw_buffer = (ctypes.c_char * file_size).from_buffer(mm)
-                #cast those bytes into c-struct pointer recognised by the engine
-                struct_ptr = ctypes.cast(raw_buffer, ctypes.POINTER(ProcessTelemetry))
+            with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_WRITE) as mm:  #allows usage of .from_buffer
+                #direct pointer creation (patch)
+                raw_buffer = (ProcessTelemetry * total_rows).from_buffer(mm)
                 
+                start = time.perf_counter()
                 exit_code = core_engine.process_telemetry_stream(
-                    struct_ptr,
+                    raw_buffer,
                     total_rows,
                     out_alerts,
-                    total_rows,
+                    max_alerts,
                     ctypes.byref(alert_total),
                     whitelist_c_array,
                     whitelist_size
                 )
 
+                end = time.perf_counter()
+                #destroy exported memory view pointers to prevent winerror
+                del raw_buffer
+
                 if exit_code < 0:
                     raise OSError(f"C-Engine crashed! Code: {exit_code}")
-
+            
+            mm.close()
     except Exception as e:
         print(f"[CRITICAL] Memory Mapping failed: {e}")
         return
     
-    end = time.perf_counter()
     zlatency = (end - start) * 1000
 
-    valid_alerts = [out_alerts[x] for x in range(alert_total.value)]
+    valid_alerts = [out_alerts[x] for x in range(min(alert_total.value, max_alerts))]
     print(" ⚡ ZERO-COPY DISK-TO-CPU EXECUTION METRICS ⚡ ")
     print("-" * 60)
     print(f"Size of file processed   : {file_size / (1024*1024):.2f} MB")
@@ -129,7 +132,12 @@ if __name__=="__main__":
     zero_copy_log_ingestion(test_log, dynamic_whitelist)
 
     if os.path.exists(test_log):
-        os.remove(test_log)
+        time.sleep(0.1)
+        try:
+            os.remove(test_log)
+        except OSError as e:
+             print(f"[WARNING] OS still holding file lock, please delete manually: {e}")
+
     
 
 
